@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 class QueueManager:
     """Менеджер файловой очереди сообщен"""
     
-    def __init__(self, config_manager: ConfigManager, queue_dir: str = 'queue'):
+    def __init__(self, config_manager: ConfigManager, queue_dir: str = 'app_data/queue'):
         """
         Инициализация менеджера очереди.
         

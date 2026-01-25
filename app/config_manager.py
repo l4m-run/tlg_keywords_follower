@@ -16,8 +16,8 @@ class ConfigManager:
     """Менеджер конфигурации бота"""
     
     def __init__( self,
-                 config_file: str = 'config.json',
-                 rules_file: str = 'rules.txt'):
+                 config_file: str = 'app_data/config.json',
+                 rules_file: str = 'app_data/rules.txt'):
         """
         Инициализация менеджера конфигурации.
         
@@ -25,6 +25,9 @@ class ConfigManager:
             config_file: Путь к файлу config.json
             rules_file: Путь к файлу rules.txt
         """
+        # Создаем директорию app_data, если не существует
+        Path('app_data').mkdir(exist_ok=True)
+        
         self.config_file = config_file
         self.rules_file = rules_file
         self.config: Dict[str, Any] = {}

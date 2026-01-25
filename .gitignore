@@ -1,14 +1,9 @@
 # Credentials и session
 .env
-*.session
-*.session-journal
-
-# Файловая очередь
-queue/*.json
-
-# Конфигурация
-config.json
-rules.txt
+# Данные приложения
+app_data/*
+!app_data/.gitkeep
+!app_data/*.example.*
 
 
 # Python
@@ -38,4 +33,5 @@ build/
 .DS_Store
 Thumbs.db
 .venv/
-.venv_test/
+
+dev_planning

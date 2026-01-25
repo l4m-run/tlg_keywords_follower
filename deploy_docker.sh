@@ -26,29 +26,33 @@ fi
 echo "Использую: $DOCKER_COMPOSE_CMD"
 
 # Проверка файлов конфигурации
+if [ ! -d "app_data" ]; then
+    mkdir -p app_data
+fi
+
 if [ ! -f .env ]; then
     echo -e "${RED}❌ Файл .env не найден! Скопируйте .env.example и настройте его.${NC}"
     exit 1
 fi
 
-if [ ! -f config.json ]; then
-    echo -e "${YELLOW}⚠️ config.json не найден, создаю из примера.${NC}"
-    cp config.example.json config.json
+if [ ! -f app_data/config.json ]; then
+    echo -e "${YELLOW}⚠️ app_data/config.json не найден, создаю из примера.${NC}"
+    cp app_data/config.example.json app_data/config.json
 fi
 
-if [ ! -f rules.txt ]; then
-    echo -e "${YELLOW}⚠️ rules.txt не найден, создаю из примера.${NC}"
-    cp rules.example.txt rules.txt
+if [ ! -f app_data/rules.txt ]; then
+    echo -e "${YELLOW}⚠️ app_data/rules.txt не найден, создаю из примера.${NC}"
+    cp app_data/rules.example.txt app_data/rules.txt
 fi
 
 # Проверка файла сессии для корректного монтирования
-if [ ! -f userbot_session.session ]; then
+if [ ! -f app_data/userbot_session.session ]; then
     echo -e "${YELLOW}⚠️ Файл сессии не найден. Первый запуск требует авторизации.${NC}"
     echo -e "${YELLOW}Сейчас будет запущен интерактивный контейнер для входа.${NC}"
     echo -e "Введите номер телефона и код подтверждения, когда потребуется."
     
-    # Создаем пустой файл, чтобы docker-compose не создал директорию
-    touch userbot_session.session
+    # Создаем пустой файл, чтобы docker-compose не создал директорию (хотя мы монтируем папку, но на всякий случай)
+    touch app_data/userbot_session.session
     
     # Запускаем интерактивно
     $DOCKER_COMPOSE_CMD run --rm bot

@@ -40,30 +40,23 @@ pip install -r requirements.dev.txt
 
 ### 3. Настройка
 
-Создайте файл `.env`:
+Создайте директорию `app_data` и файл `.env`:
 
 ```bash
-cp config.example.json config.json
-nano config.json  # Опционально, если хотите изменить настройки
+mkdir -p app_data
+cp config.example.json app_data/config.json
+nano app_data/config.json  # Опционально
 cp .env.example .env
 nano .env  # Заполните своими данными
 ```
 
-Пример `.env`:
-
-```
-API_ID=12345678
-API_HASH=your_api_hash_here
-PHONE=+79991234567
-```
-
 ### 4. Настройка правил
 
-Создайте `rules.txt` из примера:
+Создайте `app_data/rules.txt` из примера:
 
 ```bash
-cp rules.example.txt rules.txt
-nano rules.txt
+cp rules.example.txt app_data/rules.txt
+nano app_data/rules.txt
 ```
 
 Формат `rules.txt`:
@@ -110,8 +103,10 @@ python -m app.main
 │   ├── __init__.py
 │   ├── main.py
 │   ├── ...
-├── config.json
-├── rules.txt
+├── app_data/
+│   ├── config.json
+│   ├── rules.txt
+│   └── userbot_session.session
 ├── .env
 └── ...
 ```
@@ -163,7 +158,7 @@ python -m app.main
 /help       # Справка
 ```
 
-Полный список команд в файле `commands_reference.md`.
+Полный список команд см. в `USER_GUIDE.md`.
 
 ## Конфигурация
 
@@ -283,7 +278,7 @@ tail -f bot.log
 - `.env` и `*.session` файлы содержат полный доступ к аккаунту
 - Никогда не коммитьте их в Git
 - Установите права доступа: `chmod 600 .env *.session`
-- Регулярно делайте backup `config.json` и `rules.txt`
+- Регулярно делайте backup `app_data/config.json` и `app_data/rules.txt`
 
 ## Troubleshooting
 

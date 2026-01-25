@@ -56,14 +56,18 @@ else
     echo "✅ Файл .env найден"
 fi
 
-if [ ! -f "$PROJECT_DIR/config.json" ]; then
-    echo "Копирование config.example.json в config.json..."
-    cp "$PROJECT_DIR/config.example.json" "$PROJECT_DIR/config.json"
+if [ ! -d "$PROJECT_DIR/app_data" ]; then
+    mkdir -p "$PROJECT_DIR/app_data"
 fi
 
-if [ ! -f "$PROJECT_DIR/rules.txt" ]; then
-    echo "Копирование rules.example.txt в rules.txt..."
-    cp "$PROJECT_DIR/rules.example.txt" "$PROJECT_DIR/rules.txt"
+if [ ! -f "$PROJECT_DIR/app_data/config.json" ]; then
+    echo "Копирование config.example.json в app_data/config.json..."
+    cp "$PROJECT_DIR/app_data/config.example.json" "$PROJECT_DIR/app_data/config.json"
+fi
+
+if [ ! -f "$PROJECT_DIR/app_data/rules.txt" ]; then
+    echo "Копирование rules.example.txt в app_data/rules.txt..."
+    cp "$PROJECT_DIR/app_data/rules.example.txt" "$PROJECT_DIR/app_data/rules.txt"
 fi
 
 # 5. Создание и регистрация systemd сервиса

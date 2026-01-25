@@ -37,7 +37,7 @@ async def main():
     
     # Инициализация Telethon клиента
     logger.info("🔗 Подключение к Telegram...")
-    client = TelegramClient('userbot_session', api_id, api_hash)
+    client = TelegramClient('app_data/userbot_session', api_id, api_hash)
     
     # Запуск клиента (авторизация при первом запуске)
     await client.start(phone=phone)
@@ -77,13 +77,16 @@ async def main():
 
 
 if __name__ == '__main__':
+    # Создаем директорию для данных и логов
+    Path('app_data').mkdir(exist_ok=True)
+
     # Настройка логирования с ротацией
     logging.basicConfig(
         level=logging.INFO,
         format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
         handlers=[
             RotatingFileHandler(
-                'bot.log',
+                'app_data/bot.log',
                 maxBytes=10*1024*1024,  # 10 MB
                 backupCount=5,
                 encoding='utf-8'
@@ -92,8 +95,7 @@ if __name__ == '__main__':
         ]
     )
     
-    # Создание директории queue/ если не существует
-    Path('queue').mkdir(exist_ok=True)
+
     
     # Запуск бота
     try:
