@@ -1,0 +1,41 @@
+# Credentials и session
+.env
+*.session
+*.session-journal
+
+# Файловая очередь
+queue/*.json
+
+# Конфигурация
+config.json
+rules.txt
+
+
+# Python
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Logs
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+.venv/
+.venv_test/

@@ -1,0 +1,11 @@
+{
+    "monitored_chats": [
+        {
+            "id": -1001234567890,
+            "name": "Пример канала"
+        }
+    ],
+    "rules": [],
+    "forward_mode": "forward",
+    "auto_add_chats": true
+}

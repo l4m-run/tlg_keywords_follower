@@ -1,0 +1,14 @@
+.git
+.venv
+venv
+__pycache__
+*.pyc
+.env.example
+.idea
+.vscode
+dev_planning
+deploy.sh
+deploy_docker.sh
+README.md
+USER_GUIDE.md
+commands_reference.md

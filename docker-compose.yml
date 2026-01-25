@@ -1,0 +1,18 @@
+version: '3.8'
+
+services:
+  bot:
+    build: .
+    container_name: tlg_keywords_follower
+    restart: unless-stopped
+    volumes:
+      - ./config.json:/app/config.json
+      - ./rules.txt:/app/rules.txt
+      - ./queue:/app/queue
+      - ./.env:/app/.env
+      # Монтируем файлы сессии для сохранения состояния
+      # Если файла нет, docker может создать директорию, поэтому лучше, 
+      # чтобы файл существовал (хотя бы пустой) или запускать первый раз через run
+      - ./userbot_session.session:/app/userbot_session.session
+    environment:
+      - PYTHONUNBUFFERED=1

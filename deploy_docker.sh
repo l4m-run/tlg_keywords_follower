@@ -1,0 +1,64 @@
+#!/bin/bash
+set -e
+
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+RED='\033[0;31m'
+NC='\033[0m'
+
+echo -e "${GREEN}🐳 Запуск tlg_keywords_follower в Docker...${NC}"
+
+# Проверка Docker
+if ! command -v docker &> /dev/null; then
+    echo -e "${RED}❌ Docker не найден! Пожалуйста, установите Docker.${NC}"
+    exit 1
+fi
+
+# Определение команды docker-compose
+if command -v docker-compose &> /dev/null; then
+    DOCKER_COMPOSE_CMD="docker-compose"
+elif docker compose version &> /dev/null; then
+    DOCKER_COMPOSE_CMD="docker compose"
+else
+    echo -e "${RED}❌ docker-compose не найден! (ни как отдельная утилита, ни как плагин 'docker compose')${NC}"
+    exit 1
+fi
+echo "Использую: $DOCKER_COMPOSE_CMD"
+
+# Проверка файлов конфигурации
+if [ ! -f .env ]; then
+    echo -e "${RED}❌ Файл .env не найден! Скопируйте .env.example и настройте его.${NC}"
+    exit 1
+fi
+
+if [ ! -f config.json ]; then
+    echo -e "${YELLOW}⚠️ config.json не найден, создаю из примера.${NC}"
+    cp config.example.json config.json
+fi
+
+if [ ! -f rules.txt ]; then
+    echo -e "${YELLOW}⚠️ rules.txt не найден, создаю из примера.${NC}"
+    cp rules.example.txt rules.txt
+fi
+
+# Проверка файла сессии для корректного монтирования
+if [ ! -f userbot_session.session ]; then
+    echo -e "${YELLOW}⚠️ Файл сессии не найден. Первый запуск требует авторизации.${NC}"
+    echo -e "${YELLOW}Сейчас будет запущен интерактивный контейнер для входа.${NC}"
+    echo -e "Введите номер телефона и код подтверждения, когда потребуется."
+    
+    # Создаем пустой файл, чтобы docker-compose не создал директорию
+    touch userbot_session.session
+    
+    # Запускаем интерактивно
+    $DOCKER_COMPOSE_CMD run --rm bot
+    
+    echo -e "${GREEN}✅ Авторизация пройдена (надеюсь). Запускаю сервис в фоне.${NC}"
+fi
+
+# Сборка и запуск
+echo -e "\n${YELLOW}🏗 Сборка и запуск контейнеров...${NC}"
+$DOCKER_COMPOSE_CMD up -d --build
+
+echo -e "\n${GREEN}✅ Сервис запущен!${NC}"
+echo "Логи: $DOCKER_COMPOSE_CMD logs -f"
