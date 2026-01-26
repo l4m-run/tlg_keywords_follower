@@ -96,7 +96,7 @@ class QueueManager:
         rule_names: List[str] = None
     ) -> bool:
         """
-        Отправляет сообщение с обработкой FloodWaitError.
+        Отправляет сообщение с обработкой FloodWaitError и резолвингом ID.
         
         Args:
             client: TelegramClient instance
@@ -109,22 +109,28 @@ class QueueManager:
             True при успехе, False при ошибке (FloodWait или другой)
         """
         try:
+            # Резолвим целевую сущность (чат) для предотвращения ChatIdInvalidError
+            target_peer = await client.get_input_entity(chat_id)
+            
             if forward_mode == 'forward':
-                # Используем message_id и from_chat_id для пересылки
+                # Резолвим исходную сущность
+                from_peer = await client.get_input_entity(message_data['from_chat_id'])
+                
+                # Используем message_id и резолвленные peer'ы для пересылки
                 await client.forward_messages(
-                    chat_id,
+                    target_peer,
                     messages=message_data['message_id'],
-                    from_peer=message_data['from_chat_id']
+                    from_peer=from_peer
                 )
             else:
                 # Для copy просто отправляем текст
-                await client.send_message(chat_id, message_data['message_text'])
+                await client.send_message(target_peer, message_data['message_text'])
             
             # Отправка уведомления о правиле (вторым сообщением)
             if rule_names:
                 rules_str = ', '.join(rule_names)
                 try:
-                    await client.send_message(chat_id, f"ℹ️ Сработало правило: {rules_str}")
+                    await client.send_message(target_peer, f"ℹ️ Сработало правило: {rules_str}")
                 except Exception as e:
                     logger.error(f"Не удалось отправить уведомление о правиле в {chat_id}: {e}")
             
@@ -136,7 +142,7 @@ class QueueManager:
             return False
             
         except Exception as e:
-            logger.error(f"Ошибка отправки в {chat_id}: {e}", exc_info=True)
+            logger.error(f"Ошибка отправки в {chat_id}: {type(e).__name__}: {e}")
             return False
     
     async def process_queue(self, client) -> None:
