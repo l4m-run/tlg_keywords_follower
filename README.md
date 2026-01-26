@@ -100,9 +100,11 @@ python -m app.main
 
 При `auto_add_chats: true` в `config.json`:
 
+```text
 1. Добавьте бота в группу/канал
 2. Чат автоматически добавится в `monitored_chats`
 3. Бот начнёт мониторить этот чат
+```
 
 ### Управление правилами через Telegram
 
@@ -110,7 +112,7 @@ python -m app.main
 
 #### Просмотр
 
-```
+```text
 /rules                    # Список всех правил
 /monitored_chats          # Список мониторимых чатов
 /test срочная новость     # Проверить какие правила сработают
@@ -118,20 +120,20 @@ python -m app.main
 
 #### Добавление
 
-```
+```text
 /add_rule name: key1, key2 -> -1001234
 /add_chat                 # Ответьте на пересланное сообщение
 ```
 
 #### Удаление
 
-```
+```text
 /delete_rule имя_правила
 ```
 
 #### Системные
 
-```
+```text
 /reload     # Перечитать config.json
 /help       # Справка
 ```
@@ -253,7 +255,7 @@ tail -f bot.log
 - `.env` и `*.session` файлы содержат полный доступ к аккаунту
 - Никогда не коммитьте их в Git
 - Установите права доступа: `chmod 600 .env *.session`
-- Регулярно делайте backup `app_data/config.json` и `app_data/rules.txt`
+- Регулярно делайте backup `app_data/config.json`
 
 ## Troubleshooting
 
