@@ -35,7 +35,10 @@ class ConfigManager:
     def load(self) -> None:
         """Загружает конфигурацию из файлов"""
         self._load_config_json()
-        self._load_rules_txt()
+        
+        # Миграция из rules.txt если он есть
+        self._migrate_rules_if_needed()
+        
         self._validate_and_clean()
         self.save()
         logger.info("Конфигурация загружена успешно")
@@ -61,6 +64,57 @@ class ConfigManager:
             'auto_add_chats': True
         }
         self.save()
+    
+    def _migrate_rules_if_needed(self) -> None:
+        """
+        Миграция правил из rules.txt в config.json.
+        Выполняется один раз, после чего rules.txt переименовывается в rules.txt.bak.
+        """
+        rules_path = Path(self.rules_file)
+        if not rules_path.exists():
+            return
+
+        logger.info(f"Обнаружен {self.rules_file}, начинаем миграцию правил...")
+        
+        rules = []
+        try:
+            with open(self.rules_file, 'r', encoding='utf-8') as f:
+                for line_num, line in enumerate(f, 1):
+                    line = line.strip()
+                    if not line or line.startswith('#'):
+                        continue
+                    try:
+                        rule = self._parse_rule_line(line)
+                        if rule:
+                            rules.append(rule)
+                    except Exception as e:
+                        logger.error(f"Ошибка миграции строки {line_num}: {e}")
+            
+            if rules:
+                current_rules = self.config.get('rules', [])
+                current_names = {r.get('name') for r in current_rules}
+                
+                added_count = 0
+                for rule in rules:
+                    if rule.get('name') not in current_names:
+                        current_rules.append(rule)
+                        added_count += 1
+                
+                self.config['rules'] = current_rules
+                logger.info(f"Миграция завершена: добавлено {added_count} правил")
+            
+            # Переименовываем файл
+            bak_path = rules_path.with_suffix('.txt.bak')
+            # Если бак уже есть, добавим индекс
+            if bak_path.exists():
+                from datetime import datetime
+                bak_path = rules_path.with_suffix(f'.txt.{datetime.now().strftime("%Y%m%d%H%M%S")}.bak')
+                
+            rules_path.rename(bak_path)
+            logger.info(f"Файл {self.rules_file} переименован в {bak_path.name}")
+            
+        except Exception as e:
+            logger.error(f"Критическая ошибка при миграции правил: {e}")
     
     def _load_rules_txt(self) -> None:
         """Загрузка и парсинг rules.txt"""
@@ -129,11 +183,7 @@ class ConfigManager:
             return None
         
         # Парсим целевые чаты с названиями
-        # Формат: chat_id "Name", chat_id2 "Name2"
         target_chat_ids = []
-        
-        # Разделяем по запятым, игнорируя запятые внутри кавычек
-        # Используем lookahead для проверки четного количества кавычек впереди
         chat_entries = re.split(r',\s*(?=(?:[^"]*"[^"]*")*[^"]*$)', targets_part)
         
         for entry in chat_entries:
@@ -141,21 +191,10 @@ class ConfigManager:
             if not entry:
                 continue
             
-            # Пытаемся извлечь ID и название
-            # Формат: -1001234 "Название" или просто -1001234
             match = re.match(r'(-?\d+)(?:\s+"([^"]+)")?', entry)
             if match:
                 chat_id_raw = match.group(1)
-                chat_id = int(chat_id_raw)
-                
-                # Авто-коррекция ID для каналов/супергрупп (Telethon специфично)
-                # Если ID начинается на - и имеет >= 10 знаков после минуса (как в ошибке), 
-                # вероятно это ID канала без префикса -100.
-                if chat_id < 0 and not str(chat_id).startswith('-100') and len(str(chat_id)) >= 11:
-                    corrected_id = int(f"-100{abs(chat_id)}")
-                    logger.info(f"Авто-коррекция ID чата: {chat_id} -> {corrected_id}")
-                    chat_id = corrected_id
-                
+                chat_id = self._correct_chat_id(int(chat_id_raw))
                 target_chat_ids.append(chat_id)
             else:
                 logger.warning(f"Не удалось распарсить целевой чат: {entry}")
@@ -170,20 +209,51 @@ class ConfigManager:
             'target_chat_ids': target_chat_ids,
             'case_sensitive': case_sensitive
         }
+
+    def _correct_chat_id(self, chat_id: int) -> int:
+        """
+        Корректирует ID чата, добавляя префикс -100 для каналов и супергрупп,
+        если он отсутствует. Telethon использует маркированные ID.
+        """
+        chat_str = str(chat_id)
+        
+        # Если ID уже правильный (начинается на -100) - не трогаем
+        if chat_str.startswith('-100'):
+            return chat_id
+            
+        # Если чат отрицательный, но без -100 и длинный (обычно > 8 цифр)
+        if chat_id < 0 and len(chat_str) >= 10:
+            return int(f"-100{abs(chat_id)}")
+            
+        # Если чат положительный и длинный (вероятно ID канала от бота)
+        if chat_id > 0 and len(chat_str) >= 9:
+            return int(f"-100{chat_id}")
+            
+        return chat_id
     
     def _validate_and_clean(self) -> None:
         """
-        Валидация и очистка monitored_chats.
-        Убирает все target_chat_ids из monitored_chats для защиты от зацикливания.
+        Валидация, коррекция ID и очистка от зацикливаний.
         """
-        # Собираем все target чаты из всех правил
+        # 1. Корректируем ID в правилах
+        for rule in self.config.get('rules', []):
+            rule['target_chat_ids'] = [self._correct_chat_id(id) for id in rule.get('target_chat_ids', [])]
+            
+        # 2. Корректируем ID в monitored_chats
+        monitored = self.config.get('monitored_chats', [])
+        for chat in monitored:
+            if isinstance(chat, dict) and 'id' in chat:
+                chat['id'] = self._correct_chat_id(chat['id'])
+            elif isinstance(chat, int):
+                # Старый формат (просто список ID)
+                pass # Это будет обработано ниже при перепаковке в словари
+                
+        # 3. Собираем все target чаты для защиты от зацикливания
         all_target_ids = set()
         for rule in self.config.get('rules', []):
             all_target_ids.update(rule.get('target_chat_ids', []))
         
-        monitored = self.config.get('monitored_chats', [])
-        
-        # Фильтруем - monitored это список объектов {"id": ..., "name": ...}
+        # 4. Фильтруем monitored_chats
         cleaned = []
         removed_ids = []
         
@@ -195,42 +265,30 @@ class ConfigManager:
                 else:
                     removed_ids.append(chat_id)
             elif isinstance(chat, int):
-                # Обратная совместимость со старым форматом
-                if chat not in all_target_ids:
-                    cleaned.append({'id': chat, 'name': 'Unknown'})
+                corrected_id = self._correct_chat_id(chat)
+                if corrected_id not in all_target_ids:
+                    cleaned.append({'id': corrected_id, 'name': 'Unknown'})
                 else:
-                    removed_ids.append(chat)
+                    removed_ids.append(corrected_id)
         
         if removed_ids:
             logger.warning(f"Удалены target чаты из monitored_chats: {removed_ids}")
         
         self.config['monitored_chats'] = cleaned
-    
+
     def save(self) -> None:
-        """Сохраняет конфигурацию в файлы"""
+        """Сохраняет конфигурацию в config.json"""
         self._save_config_json()
         logger.info("Конфигурация сохранена")
-    
+
     def _save_config_json(self) -> None:
         """Сохранение config.json"""
         with open(self.config_file, 'w', encoding='utf-8') as f:
             json.dump(self.config, f, indent=2, ensure_ascii=False)
-    
+
     def save_rules_to_file(self) -> None:
-        """Сохранение правил в rules.txt"""
-        with open(self.rules_file, 'w', encoding='utf-8') as f:
-            f.write("# Правила пересылки сообщений\n")
-            f.write("# Формат: name: keywords -> chat_id \"Name\" [case:on]\n\n")
-            
-            for rule in self.config.get('rules', []):
-                name = rule.get('name', 'unnamed')
-                keywords = ', '.join(rule.get('keywords', []))
-                target_ids = ', '.join(str(id) for id in rule.get('target_chat_ids', []))
-                case_flag = ' [case:on]' if rule.get('case_sensitive', False) else ''
-                
-                f.write(f"{name}: {keywords} -> {target_ids}{case_flag}\n")
-        
-        logger.info(f"Правила сохранены в {self.rules_file}")
+        """Заглушка (теперь всё хранится в config.json)"""
+        pass
     
     def add_monitored_chat(self, chat_id: int, chat_name: str) -> bool:
         """
@@ -312,9 +370,8 @@ class ConfigManager:
             logger.info(f"Добавлено новое правило: {name}")
             
         self.config['rules'] = rules
-        self._validate_and_clean()  # Очистка от зацикливаний
-        self.save()                 # Сохраняем config.json
-        self.save_rules_to_file()   # Сохраняем rules.txt
+        self._validate_and_clean()  # Очистка и коррекция ID
+        self.save()                 # Сохраняем в config.json
 
     def remove_rule(self, name: str) -> bool:
         """
@@ -334,7 +391,6 @@ class ConfigManager:
         if len(rules) < original_len:
             self.config['rules'] = rules
             self.save()
-            self.save_rules_to_file()
             logger.info(f"Удалено правило: {name}")
             return True
         

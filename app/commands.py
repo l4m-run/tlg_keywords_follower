@@ -149,10 +149,11 @@ async def cmd_add_chat(event, config_mgr) -> None:
             await event.reply(f"❌ Не могу получить ID чата: автор скрыл свой профиль (имя: {reply_msg.fwd_from.from_name})")
             return
         else:
-            # Fallback (иногда бывает forward_to)
             chat = await reply_msg.get_chat()
             
-        chat_id = chat.id
+        # Используем utils.get_peer_id для получения корректного ID (с префиксом -100)
+        from telethon import utils
+        chat_id = utils.get_peer_id(chat)
         
         # Получаем название
         if hasattr(chat, 'title'):
@@ -172,7 +173,7 @@ async def cmd_add_chat(event, config_mgr) -> None:
                 f"✅ **Чат добавлен в мониторинг!**\n\n"
                 f"📝 Название: {chat_name}\n"
                 f"🆔 Chat ID: `{chat_id}`\n\n"
-                f"💡 Теперь скопируйте этот ID в `rules.txt`"
+                f"💡 Чат активирован для всех правил"
             )
         else:
             await event.reply(
@@ -315,7 +316,7 @@ async def cmd_help(event) -> None:
 `/add_rule news: bitcoin, btc -> -1001234`
 
 **Системные:**
-`/reload` - перечитать rules.txt (после ручной правки)
+`/reload` - перезагрузить config.json
 `/help` - эта справка
 
 📚 Подробности в `USER_GUIDE.md`
