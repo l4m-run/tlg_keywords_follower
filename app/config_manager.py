@@ -1,6 +1,6 @@
 """
 Менеджер конфигурации для Telegram UserBot.
-Управление config.json и rules.txt.
+Управление конфигурацией в формате JSON.
 """
 
 import json
@@ -116,33 +116,6 @@ class ConfigManager:
         except Exception as e:
             logger.error(f"Критическая ошибка при миграции правил: {e}")
     
-    def _load_rules_txt(self) -> None:
-        """Загрузка и парсинг rules.txt"""
-        rules_path = Path(self.rules_file)
-        
-        if not rules_path.exists():
-            logger.warning(f"{self.rules_file} не найден")
-            self.config['rules'] = []
-            return
-        
-        rules = []
-        with open(self.rules_file, 'r', encoding='utf-8') as f:
-            for line_num, line in enumerate(f, 1):
-                line = line.strip()
-                
-                # Пропуск комментариев и пустых строк
-                if not line or line.startswith('#'):
-                    continue
-                
-                try:
-                    rule = self._parse_rule_line(line)
-                    if rule:
-                        rules.append(rule)
-                except Exception as e:
-                    logger.error(f"Ошибка парсинга строки {line_num}: {e}")
-        
-        self.config['rules'] = rules
-        logger.info(f"Загружено {len(rules)} правил из {self.rules_file}")
     
     def _parse_rule_line(self, line: str) -> Optional[Dict[str, Any]]:
         """
