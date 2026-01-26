@@ -31,7 +31,7 @@ def setup_commands(client, config_mgr: ConfigManager) -> None:
         
         try:
             # Роутинг команд
-            if command in ['/rules', '/list']:
+            if command == '/rules':
                 await cmd_list_rules(event, config_mgr)
             
             elif command == '/monitored_chats':
@@ -39,6 +39,12 @@ def setup_commands(client, config_mgr: ConfigManager) -> None:
             
             elif command == '/add_chat':
                 await cmd_add_chat(event, config_mgr)
+
+            elif command in ['/add_rule', '/edit_rule']:
+                await cmd_add_rule(event, config_mgr, args)
+
+            elif command == '/delete_rule':
+                await cmd_delete_rule(event, config_mgr, args)
             
             elif command == '/test':
                 await cmd_test_message(event, config_mgr, args)
@@ -229,6 +235,65 @@ async def cmd_reload(event, config_mgr) -> None:
         await event.reply(f"❌ Ошибка перезагрузки: {e}")
 
 
+async def cmd_add_rule(event, config_mgr, args: str) -> None:
+    """
+    Добавляет или редактирует правило через команду.
+    Формат: /add_rule name: keywords -> chat_id, chat_id
+    """
+    if not args:
+        await event.reply(
+            "❌ **Использование:**\n"
+            "`/add_rule name: keywords -> chat_id1, chat_id2 [case:on]`\n\n"
+            "Пример:\n"
+            "`/add_rule urgent: срочно, важно -> -1001234`"
+        )
+        return
+
+    try:
+        # Используем существующий парсер из ConfigManager (он приватный, но мы можем его вызвать или продублировать логику)
+        # Для чистоты кода лучше если ConfigManager предоставит публичный метод парсинга или мы сами разберем здесь.
+        # Так как ConfigManager._parse_rule_line ожидает полную строку, соберем её.
+        rule_line = args.strip()
+        
+        # Минимальная проверка формата
+        if ':' not in rule_line or '->' not in rule_line:
+            # Если ввели просто имя, возможно хотят начать диалог? Но пользователь просил "по аналогии с /add_chat"
+            # /add_chat работает через пересылку. /add_rule пока сделаем через строку.
+            await event.reply("❌ Неверный формат. Используйте `name: keywords -> chat_id`")
+            return
+
+        parsed = config_mgr._parse_rule_line(rule_line)
+        if not parsed:
+            await event.reply("❌ Ошибка парсинга правила. Проверьте формат.")
+            return
+
+        config_mgr.add_rule(
+            name=parsed['name'],
+            keywords=parsed['keywords'],
+            target_chat_ids=parsed['target_chat_ids'],
+            case_sensitive=parsed['case_sensitive']
+        )
+        
+        await event.reply(f"✅ Правило **{parsed['name']}** успешно сохранено!")
+
+    except Exception as e:
+        logger.error(f"Ошибка в cmd_add_rule: {e}")
+        await event.reply(f"❌ Ошибка: {e}")
+
+
+async def cmd_delete_rule(event, config_mgr, args: str) -> None:
+    """Удаляет правило по имени"""
+    if not args:
+        await event.reply("❌ Использование: `/delete_rule <название_правила>`")
+        return
+    
+    name = args.strip()
+    if config_mgr.remove_rule(name):
+        await event.reply(f"✅ Правило **{name}** удалено")
+    else:
+        await event.reply(f"❌ Правило **{name}** не найдено")
+
+
 async def cmd_help(event) -> None:
     """Показывает справку по командам"""
     help_text = """📖 **Справка по командам**
@@ -238,32 +303,21 @@ async def cmd_help(event) -> None:
 `/monitored_chats` - список мониторимых чатов  
 `/test <текст>` - проверить какие правила сработают
 
-**Добавление чатов:**
-`/add_chat` - добавить канал/группу через пересылку
+**Управление правилами:**
+`/add_rule <правило>` - добавить/обновить правило
+`/delete_rule <имя>` - удалить правило
+`/add_chat` - добавить канал/группу в мониторинг (через Reply)
 
-**Как использовать /add_chat:**
-1️⃣ Перешлите сообщение из канала в Saved Messages
-2️⃣ Ответьте на него: `/add_chat`
-3️⃣ Скопируйте полученный chat_id в rules.txt
+**Формат /add_rule:**
+`название: слово1, слово2 -> ID_чата [case:on]`
+
+**Пример:**
+`/add_rule news: bitcoin, btc -> -1001234`
 
 **Системные:**
-`/reload` - перечитать rules.txt
+`/reload` - перечитать rules.txt (после ручной правки)
 `/help` - эта справка
 
-**Настройка:**
-Редактируйте `app_data/rules.txt` на сервере:
-```
-# Формат:
-название: ключевые_слова -> chat_id "Название"
-
-# Примеры:
-urgent: срочно, важно -> -1001234 "Важные новости"
-trading: deal, price -> -1005678 "Трейдинг"
-```
-
-После редактирования используйте `/reload`
-
-📚 Подробности в файле `USER_GUIDE.md`
+📚 Подробности в `USER_GUIDE.md`
 """
-    
     await event.reply(help_text)

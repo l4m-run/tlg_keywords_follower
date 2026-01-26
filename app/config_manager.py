@@ -270,3 +270,62 @@ class ConfigManager:
     def get_auto_add_chats(self) -> bool:
         """Возвращает настройку автоматического добавления чатов"""
         return self.config.get('auto_add_chats', True)
+
+    def add_rule(self, name: str, keywords: List[str], target_chat_ids: List[int], case_sensitive: bool = False) -> None:
+        """
+        Добавляет или обновляет правило.
+        
+        Args:
+            name: Название правила
+            keywords: Список ключевых слов
+            target_chat_ids: Список ID целевых чатов
+            case_sensitive: Учитывать ли регистр
+        """
+        rules = self.config.get('rules', [])
+        
+        # Ищем существующее правило
+        existing_rule = next((r for r in rules if r.get('name') == name), None)
+        
+        new_rule = {
+            'name': name,
+            'keywords': keywords,
+            'target_chat_ids': target_chat_ids,
+            'case_sensitive': case_sensitive
+        }
+        
+        if existing_rule:
+            rules[rules.index(existing_rule)] = new_rule
+            logger.info(f"Обновлено правило: {name}")
+        else:
+            rules.append(new_rule)
+            logger.info(f"Добавлено новое правило: {name}")
+            
+        self.config['rules'] = rules
+        self._validate_and_clean()  # Очистка от зацикливаний
+        self.save()                 # Сохраняем config.json
+        self.save_rules_to_file()   # Сохраняем rules.txt
+
+    def remove_rule(self, name: str) -> bool:
+        """
+        Удаляет правило по имени.
+        
+        Args:
+            name: Название правила
+            
+        Returns:
+            True если удалено, False если не найдено
+        """
+        rules = self.config.get('rules', [])
+        original_len = len(rules)
+        
+        rules = [r for r in rules if r.get('name') != name]
+        
+        if len(rules) < original_len:
+            self.config['rules'] = rules
+            self.save()
+            self.save_rules_to_file()
+            logger.info(f"Удалено правило: {name}")
+            return True
+        
+        logger.warning(f"Правило не найдено для удаления: {name}")
+        return False
