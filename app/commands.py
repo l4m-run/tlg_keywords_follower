@@ -186,7 +186,7 @@ async def cmd_test_message(event, config_mgr, test_text: str) -> None:
         await event.reply("❌ Использование: /test <текст сообщения>")
         return
     
-    from handlers import check_message_against_rules, get_unique_target_chats
+    from .handlers import check_message_against_rules, get_unique_target_chats
     
     rules = config_mgr.get_rules()
     matched_rules = check_message_against_rules(test_text, rules)
