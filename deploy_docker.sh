@@ -40,10 +40,6 @@ if [ ! -f app_data/config.json ]; then
     cp app_data/config.example.json app_data/config.json
 fi
 
-if [ ! -f app_data/rules.txt ]; then
-    echo -e "${YELLOW}⚠️ app_data/rules.txt не найден, создаю из примера.${NC}"
-    cp app_data/rules.example.txt app_data/rules.txt
-fi
 
 # Проверка файла сессии для корректного монтирования
 if [ ! -f app_data/userbot_session.session ]; then

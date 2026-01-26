@@ -65,10 +65,6 @@ if [ ! -f "$PROJECT_DIR/app_data/config.json" ]; then
     cp "$PROJECT_DIR/app_data/config.example.json" "$PROJECT_DIR/app_data/config.json"
 fi
 
-if [ ! -f "$PROJECT_DIR/app_data/rules.txt" ]; then
-    echo "Копирование rules.example.txt в app_data/rules.txt..."
-    cp "$PROJECT_DIR/app_data/rules.example.txt" "$PROJECT_DIR/app_data/rules.txt"
-fi
 
 # 5. Создание и регистрация systemd сервиса
 echo -e "\n${YELLOW}🔧 Настройка systemd сервиса...${NC}"
