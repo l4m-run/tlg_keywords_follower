@@ -144,7 +144,17 @@ class ConfigManager:
             # Формат: -1001234 "Название" или просто -1001234
             match = re.match(r'(-?\d+)(?:\s+"([^"]+)")?', entry)
             if match:
-                chat_id = int(match.group(1))
+                chat_id_raw = match.group(1)
+                chat_id = int(chat_id_raw)
+                
+                # Авто-коррекция ID для каналов/супергрупп (Telethon специфично)
+                # Если ID начинается на - и имеет >= 10 знаков после минуса (как в ошибке), 
+                # вероятно это ID канала без префикса -100.
+                if chat_id < 0 and not str(chat_id).startswith('-100') and len(str(chat_id)) >= 11:
+                    corrected_id = int(f"-100{abs(chat_id)}")
+                    logger.info(f"Авто-коррекция ID чата: {chat_id} -> {corrected_id}")
+                    chat_id = corrected_id
+                
                 target_chat_ids.append(chat_id)
             else:
                 logger.warning(f"Не удалось распарсить целевой чат: {entry}")
