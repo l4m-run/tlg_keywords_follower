@@ -37,6 +37,7 @@ class ConfigManager:
         self._load_config_json()
         self._load_rules_txt()
         self._validate_and_clean()
+        self.save()
         logger.info("Конфигурация загружена успешно")
     
     def _load_config_json(self) -> None:
