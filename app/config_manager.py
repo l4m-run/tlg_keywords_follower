@@ -195,12 +195,10 @@ class ConfigManager:
             return chat_id
             
         # Если чат отрицательный, но без -100 и длинный (обычно > 8 цифр)
-        if chat_id < 0 and len(chat_str) >= 10:
+        if chat_id < 0 and len(chat_str) >= 11:
             return int(f"-100{abs(chat_id)}")
             
-        # Если чат положительный и длинный (вероятно ID канала от бота)
-        if chat_id > 0 and len(chat_str) >= 9:
-            return int(f"-100{chat_id}")
+
             
         return chat_id
     
